@@ -136,7 +136,7 @@ jobs:
             # Create flag (idempotent: ignore if already exists)
             curl -s -o /dev/null -w "%{http_code}" \
               -X POST "$UNLEASH_URL/api/admin/projects/default/features" \
-              -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" \
+              -H "Authorization: $UNLEASH_ADMIN_TOKEN" \
               -H "Content-Type: application/json" \
               -d "{\"name\":\"$name\",\"type\":\"release\",\"description\":\"$desc\"}" \
               | tee /tmp/create_code.txt
@@ -158,7 +158,7 @@ jobs:
 
           echo "Ensure flags exist:"
           curl -fsS "$UNLEASH_URL/api/admin/projects/default/features" \
-            -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" | jq '.[].name' | sort
+            -H "Authorization: $UNLEASH_ADMIN_TOKEN" | jq '.[].name' | sort
 
       - name: Toggle flags via Unleash API (ON/OFF check)
         run: |
@@ -168,12 +168,12 @@ jobs:
           for f in premium-pricing order-notifications bulk-order-discount; do
             curl -fsS -X POST \
               "$UNLEASH_URL/api/admin/projects/default/features/$f/environments/$UNLEASH_ENV/on" \
-              -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" >/dev/null
+              -H "Authorization: $UNLEASH_ADMIN_TOKEN" >/dev/null
           done
 
           # Validate at least one flag state returned from Unleash API
           curl -fsS "$UNLEASH_URL/api/admin/projects/default/features" \
-            -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" | jq 'length' | grep -q '[1-9]'
+            -H "Authorization: $UNLEASH_ADMIN_TOKEN" | jq 'length' | grep -q '[1-9]'
 
       - name: Integration Test - premium-pricing affects /api/products/premium
         run: |
@@ -182,7 +182,7 @@ jobs:
           # With premium-pricing ON
           curl -fsS -X POST \
             "$UNLEASH_URL/api/admin/projects/default/features/premium-pricing/environments/$UNLEASH_ENV/on" \
-            -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" >/dev/null
+            -H "Authorization: $UNLEASH_ADMIN_TOKEN" >/dev/null
 
           ON_RESP=$(curl -fsS "$PRODUCT_URL/api/products/premium")
           echo "Premium ON response: $ON_RESP"
@@ -190,7 +190,7 @@ jobs:
           # With premium-pricing OFF
           curl -fsS -X POST \
             "$UNLEASH_URL/api/admin/projects/default/features/premium-pricing/environments/$UNLEASH_ENV/off" \
-            -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" >/dev/null
+            -H "Authorization: $UNLEASH_ADMIN_TOKEN" >/dev/null
 
           OFF_RESP=$(curl -fsS "$PRODUCT_URL/api/products/premium")
           echo "Premium OFF response: $OFF_RESP"
@@ -214,7 +214,7 @@ jobs:
           # Turn ON order-notifications
           curl -fsS -X POST \
             "$UNLEASH_URL/api/admin/projects/default/features/order-notifications/environments/$UNLEASH_ENV/on" \
-            -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" >/dev/null
+            -H "Authorization: $UNLEASH_ADMIN_TOKEN" >/dev/null
 
           # Create an order (adjust payload to match your controller)
           curl -fsS -X POST "$ORDER_URL/api/orders" \
@@ -231,7 +231,7 @@ jobs:
           # Turn OFF order-notifications
           curl -fsS -X POST \
             "$UNLEASH_URL/api/admin/projects/default/features/order-notifications/environments/$UNLEASH_ENV/off" \
-            -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" >/dev/null
+            -H "Authorization: $UNLEASH_ADMIN_TOKEN" >/dev/null
 
           curl -fsS -X POST "$ORDER_URL/api/orders" \
             -H "Content-Type: application/json" \
@@ -247,7 +247,7 @@ jobs:
           # Turn ON bulk-order-discount
           curl -fsS -X POST \
             "$UNLEASH_URL/api/admin/projects/default/features/bulk-order-discount/environments/$UNLEASH_ENV/on" \
-            -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" >/dev/null
+            -H "Authorization: $UNLEASH_ADMIN_TOKEN" >/dev/null
 
           # Create order with qty > 5
           RESP_ON=$(curl -fsS -X POST "$ORDER_URL/api/orders" \
@@ -260,7 +260,7 @@ jobs:
           # Turn OFF bulk-order-discount
           curl -fsS -X POST \
             "$UNLEASH_URL/api/admin/projects/default/features/bulk-order-discount/environments/$UNLEASH_ENV/off" \
-            -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" >/dev/null
+            -H "Authorization: $UNLEASH_ADMIN_TOKEN" >/dev/null
 
           RESP_OFF=$(curl -fsS -X POST "$ORDER_URL/api/orders" \
             -H "Content-Type: application/json" \
@@ -326,7 +326,7 @@ jobs:
         run: |
           set -e
           FLAGS=$(curl -fsS "$UNLEASH_URL/api/admin/projects/default/features" \
-            -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" | jq -r '.[].name' | sort)
+            -H "Authorization: $UNLEASH_ADMIN_TOKEN" | jq -r '.[].name' | sort)
           
           echo "$FLAGS"
           echo "$FLAGS" | grep -q "premium-pricing"
@@ -339,11 +339,11 @@ jobs:
           for f in premium-pricing order-notifications bulk-order-discount; do
             curl -fsS -X POST \
               "$UNLEASH_URL/api/admin/projects/default/features/$f/environments/$UNLEASH_ENV/on" \
-              -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" >/dev/null
+              -H "Authorization: $UNLEASH_ADMIN_TOKEN" >/dev/null
           
             curl -fsS -X POST \
               "$UNLEASH_URL/api/admin/projects/default/features/$f/environments/$UNLEASH_ENV/off" \
-              -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" >/dev/null
+              -H "Authorization: $UNLEASH_ADMIN_TOKEN" >/dev/null
           done
           echo "Toggles ON/OFF executed successfully."
 
@@ -360,18 +360,18 @@ jobs:
           # Delete
           curl -fsS -X DELETE \
             "$UNLEASH_URL/api/admin/projects/default/features/$FLAG" \
-            -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" >/dev/null || true
+            -H "Authorization: $UNLEASH_ADMIN_TOKEN" >/dev/null || true
           
           # Confirm missing
           curl -fsS "$UNLEASH_URL/api/admin/projects/default/features" \
-            -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" | jq -r '.[].name' | grep -q "$FLAG" \
+            -H "Authorization: $UNLEASH_ADMIN_TOKEN" | jq -r '.[].name' | grep -q "$FLAG" \
             && (echo "Flag still exists, expected deleted" && exit 1) || true
           
           echo "Flag deleted. Your service should now fallback to OFF for that flag."
           
           # Recreate (so future jobs/dev runs are fine)
           curl -fsS -X POST "$UNLEASH_URL/api/admin/projects/default/features" \
-            -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" \
+            -H "Authorization: $UNLEASH_ADMIN_TOKEN" \
             -H "Content-Type: application/json" \
             -d "{\"name\":\"$FLAG\",\"type\":\"release\",\"description\":\"Recreated for CI\"}" >/dev/null
 
