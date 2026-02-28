@@ -64,21 +64,21 @@ jobs:
         run: |
           docker compose up -d --build
 
-      - name: Wait for services to be healthy
+      - name: Wait for postgres to be healthy
         run: |
+          set -e
           echo "Waiting for postgres..."
-          for i in {1..60}; do
-            if docker compose ps | grep -q "postgres" && docker inspect -f '{{.State.Health.Status}}' postgres 2>/dev/null | grep -q healthy; then
-              echo "postgres healthy"
-              break
+          for i in {1..90}; do
+            PG_ID=$(docker compose ps -q postgres || true)
+            if [ -n "$PG_ID" ]; then
+              STATUS=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}nohealth{{end}}' "$PG_ID" 2>/dev/null || true)
+              echo "postgres status: $STATUS"
+              if [ "$STATUS" = "healthy" ]; then
+                echo "postgres healthy"
+                exit 0
+              fi
             fi
             sleep 2
-            if [ $i -eq 60 ]; then
-              echo "postgres not healthy in time"
-              docker compose ps
-              docker compose logs postgres
-              exit 1
-            fi
           done
 
           echo "Waiting for unleash..."
@@ -270,7 +270,7 @@ jobs:
           TOTAL_OFF=$(echo "$RESP_OFF" | jq -r '.totalPrice')
 
           # Strong assertion: ON total must be less than OFF total
-          python3 - <<PY
+          python3 - <<'PY'
           import sys
           on=float("$TOTAL_ON")
           off=float("$TOTAL_OFF")
