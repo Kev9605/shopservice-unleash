@@ -36,12 +36,12 @@ jobs:
 
     env:
       # docker-compose.yml uses for Unleash init tokens
-      UNLEASH_ADMIN_TOKEN: *:*.admin-token
+      UNLEASH_ADMIN_TOKEN: "*:*.admin-token"
       UNLEASH_ADMIN_USER: admin
       UNLEASH_ADMIN_PASSWORD: admin123
 
       # services use client token:
-      UNLEASH_CLIENT_TOKEN: default:development.default-token
+      UNLEASH_CLIENT_TOKEN: "default:development.default-token"
 
       # Local ports (compose maps unleash to 4242, product 8081, order 8082)
       UNLEASH_URL: http://localhost:4242
