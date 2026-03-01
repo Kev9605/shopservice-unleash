@@ -235,7 +235,7 @@ jobs:
             # Turn ON order-notifications
             curl -fsS -X POST \
               "$UNLEASH_URL/api/admin/projects/default/features/order-notifications/environments/$UNLEASH_ENV/on" \
-              -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" >/dev/null
+              -H "Authorization: $UNLEASH_ADMIN_TOKEN" >/dev/null
           
           # Create order
           curl -fsS -X POST "$ORDER_URL/api/orders" \
@@ -269,7 +269,7 @@ jobs:
             # Turn OFF
             curl -fsS -X POST \
               "$UNLEASH_URL/api/admin/projects/default/features/order-notifications/environments/$UNLEASH_ENV/off" \
-              -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" >/dev/null
+              -H "Authorization: $UNLEASH_ADMIN_TOKEN" >/dev/null
           
           # Create order
           curl -fsS -X POST "$ORDER_URL/api/orders" \
