@@ -207,38 +207,73 @@ jobs:
         run: |
           set -e
 
-          # Clear old logs (restart just order-service to make log grep clean)
+          # Restart and wait
           docker compose restart order-service
-          sleep 5
-
-          # Turn ON order-notifications
-          curl -fsS -X POST \
-            "$UNLEASH_URL/api/admin/projects/default/features/order-notifications/environments/$UNLEASH_ENV/on" \
-            -H "Authorization: $UNLEASH_ADMIN_TOKEN" >/dev/null
-
-          # Create an order (adjust payload to match your controller)
+          
+          echo "Waiting for order-service to be healthy..."
+          for i in {1..30}; do
+            if curl -fsS "$ORDER_URL/actuator/health" | jq -e '.status=="UP"' >/dev/null; then
+              echo "order-service is UP"
+              break
+            fi
+            sleep 2
+            if [ $i -eq 30 ]; then
+              echo "order-service failed to start"
+              docker compose logs order-service
+              exit 1
+            fi
+            done
+            
+            # Turn ON order-notifications
+            curl -fsS -X POST \
+              "$UNLEASH_URL/api/admin/projects/default/features/order-notifications/environments/$UNLEASH_ENV/on" \
+              -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" >/dev/null
+          
+          # Create order
           curl -fsS -X POST "$ORDER_URL/api/orders" \
             -H "Content-Type: application/json" \
-            -d '{"productId":1,"quantity":1}' >/dev/null || true
-
+            -d '{"productId":1,"quantity":1}' >/dev/null
+            
+          sleep 2
+            
           LOGS_ON=$(docker compose logs --no-color order-service | tail -n 200)
-          echo "$LOGS_ON" | grep -q "ORDER NOTIFICATION" || (echo "Expected log not found when flag ON" && exit 1)
-
-          # Restart again to clean logs
+            
+          echo "$LOGS_ON" | grep -q "ORDER NOTIFICATION" \
+          || (echo "Expected log not found when flag ON" && exit 1)
+          
+          # Restart again cleanly
           docker compose restart order-service
-          sleep 5
-
-          # Turn OFF order-notifications
-          curl -fsS -X POST \
-            "$UNLEASH_URL/api/admin/projects/default/features/order-notifications/environments/$UNLEASH_ENV/off" \
-            -H "Authorization: $UNLEASH_ADMIN_TOKEN" >/dev/null
-
+            
+          echo "Waiting for order-service to be healthy..."
+          for i in {1..30}; do
+            if curl -fsS "$ORDER_URL/actuator/health" | jq -e '.status=="UP"' >/dev/null; then
+              echo "order-service is UP"
+              break
+            fi
+            sleep 2
+            if [ $i -eq 30 ]; then
+              echo "order-service failed to start"
+              docker compose logs order-service
+              exit 1
+            fi
+            done
+            
+            # Turn OFF
+            curl -fsS -X POST \
+              "$UNLEASH_URL/api/admin/projects/default/features/order-notifications/environments/$UNLEASH_ENV/off" \
+              -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" >/dev/null
+          
+          # Create order
           curl -fsS -X POST "$ORDER_URL/api/orders" \
             -H "Content-Type: application/json" \
-            -d '{"productId":1,"quantity":1}' >/dev/null || true
-
+            -d '{"productId":1,"quantity":1}' >/dev/null
+            
+          sleep 2
+            
           LOGS_OFF=$(docker compose logs --no-color order-service | tail -n 200)
-          echo "$LOGS_OFF" | grep -q "ORDER NOTIFICATION" && (echo "Log found even when flag OFF" && exit 1) || true
+            
+          echo "$LOGS_OFF" | grep -q "ORDER NOTIFICATION" \
+            && (echo "Log found even when flag OFF" && exit 1) || true
 
       - name: Integration Test - bulk-order-discount affects order pricing
         run: |
