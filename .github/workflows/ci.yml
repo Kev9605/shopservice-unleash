@@ -77,13 +77,13 @@ jobs:
         run: |
           set -e
 
-          LOGIN_RESPONSE=$(curl -s -X POST "$UNLEASH_URL/api/admin/login" \
+          LOGIN_RESPONSE=$(curl -s -X POST "$UNLEASH_URL/api/simple/login" \
             -H "Content-Type: application/json" \
             -d '{"username":"admin","password":"unleash4all"}')
 
           echo "$LOGIN_RESPONSE"
 
-          SESSION_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.token')
+          SESSION_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.access_token')
 
           if [ "$SESSION_TOKEN" = "null" ] || [ -z "$SESSION_TOKEN" ]; then
             echo "Failed to login to Unleash"
