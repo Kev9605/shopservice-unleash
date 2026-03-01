@@ -133,6 +133,7 @@ jobs:
           create_flag () {
             local name="$1"
             local desc="$2"
+          
             # Create flag (idempotent: ignore if already exists)
             curl -s -o /dev/null -w "%{http_code}" \
               -X POST "$UNLEASH_URL/api/admin/projects/default/features" \
@@ -142,6 +143,7 @@ jobs:
               | tee /tmp/create_code.txt
 
             code=$(cat /tmp/create_code.txt)
+          
             if [ "$code" = "409" ]; then
               echo "Flag $name already exists (409) - OK"
             elif [ "$code" = "201" ] || [ "$code" = "200" ]; then
@@ -159,6 +161,12 @@ jobs:
           echo "Ensure flags exist:"
           curl -fsS "$UNLEASH_URL/api/admin/projects/default/features" \
             -H "Authorization: $UNLEASH_ADMIN_TOKEN" | jq '.[].name' | sort
+          
+          # Enable environment for the flag
+          curl -fsS -X POST \
+            "$UNLEASH_URL/api/admin/projects/default/features/$name/environments/$UNLEASH_ENV" \
+            -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" \
+            -H "Content-Type: application/json" || true
 
       - name: Toggle flags via Unleash API (ON/OFF check)
         run: |
