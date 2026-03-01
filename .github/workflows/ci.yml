@@ -33,7 +33,7 @@ jobs:
     needs: build-test
 
     env:
-      UNLEASH_ADMIN_TOKEN: admin-token
+      UNLEASH_ADMIN_TOKEN: "*:*.admin-token"
       UNLEASH_URL: http://localhost:4242
       PRODUCT_URL: http://localhost:8081
       ORDER_URL: http://localhost:8082
