@@ -33,7 +33,6 @@ jobs:
     needs: build-test
 
     env:
-      UNLEASH_ADMIN_TOKEN: "*:*.admin-token"
       UNLEASH_URL: http://localhost:4242
       PRODUCT_URL: http://localhost:8081
       ORDER_URL: http://localhost:8082
@@ -73,6 +72,26 @@ jobs:
           wait_http "$PRODUCT_URL/actuator/health" "Product Service"
           wait_http "$ORDER_URL/actuator/health" "Order Service"
 
+      # LOGIN TO UNLEASH
+      - name: Login to Unleash and get admin token
+        run: |
+          set -e
+
+          LOGIN_RESPONSE=$(curl -s -X POST "$UNLEASH_URL/api/admin/login" \
+            -H "Content-Type: application/json" \
+            -d '{"username":"admin","password":"unleash4all"}')
+
+          echo "$LOGIN_RESPONSE"
+
+          SESSION_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.token')
+
+          if [ "$SESSION_TOKEN" = "null" ] || [ -z "$SESSION_TOKEN" ]; then
+            echo "Failed to login to Unleash"
+            exit 1
+          fi
+
+          echo "UNLEASH_ADMIN_TOKEN=$SESSION_TOKEN" >> $GITHUB_ENV
+
       - name: Create and enable feature flags
         run: |
           set -e
@@ -81,17 +100,15 @@ jobs:
             NAME=$1
             DESC=$2
 
-            curl -s -o /dev/null -w "%{http_code}" \
-              -X POST "$UNLEASH_URL/api/admin/projects/default/features" \
+            curl -s -X POST \
+              "$UNLEASH_URL/api/admin/projects/default/features" \
               -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" \
               -H "Content-Type: application/json" \
               -d "{\"name\":\"$NAME\",\"type\":\"release\",\"description\":\"$DESC\"}" || true
 
-            # Enable environment
             curl -s -X POST \
               "$UNLEASH_URL/api/admin/projects/default/features/$NAME/environments/$UNLEASH_ENV" \
-              -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" \
-              -H "Content-Type: application/json" || true
+              -H "Authorization: Bearer $UNLEASH_ADMIN_TOKEN" || true
           }
 
           create_flag premium-pricing "Premium pricing discount"
